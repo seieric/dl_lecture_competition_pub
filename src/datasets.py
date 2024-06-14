@@ -14,7 +14,10 @@ class ThingsMEGDataset(torch.utils.data.Dataset):
         self.num_classes = 1854
         
         # 脳波データ
-        self.X = torch.load(os.path.join(data_dir, f"{split}_X.pt"))
+        data_path = os.path.join(data_dir, f"{split}_X_preprocessed.pt")
+        if not os.path.exists(data_path):
+            raise Exception("下処理されたデータが存在しません．")
+        self.X = torch.load(data_path)
         # 被験者情報
         self.subject_idxs = torch.load(os.path.join(data_dir, f"{split}_subject_idxs.pt"))
         
