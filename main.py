@@ -25,16 +25,14 @@ def run(args: DictConfig):
     # ------------------
     #    Dataloader
     # ------------------
-    loader_args = {"batch_size": args.batch_size, "num_workers": args.num_workers}
+    loader_args = {"batch_size": args.batch_size, "num_workers": args.num_workers, "pin_memory": True}
     
     train_set = ThingsMEGDataset("train", args.data_dir)
     train_loader = torch.utils.data.DataLoader(train_set, shuffle=True, **loader_args)
     val_set = ThingsMEGDataset("val", args.data_dir)
     val_loader = torch.utils.data.DataLoader(val_set, shuffle=False, **loader_args)
     test_set = ThingsMEGDataset("test", args.data_dir)
-    test_loader = torch.utils.data.DataLoader(
-        test_set, shuffle=False, batch_size=args.batch_size, num_workers=args.num_workers
-    )
+    test_loader = torch.utils.data.DataLoader(test_set, shuffle=False, **loader_args)
 
     # ------------------
     #       Model
@@ -55,6 +53,8 @@ def run(args: DictConfig):
     accuracy = Accuracy(
         task="multiclass", num_classes=train_set.num_classes, top_k=10
     ).to(args.device)
+
+    torch.backends.cudnn.benchmark = True
       
     for epoch in range(args.epochs):
         print(f"Epoch {epoch+1}/{args.epochs}")
@@ -62,17 +62,22 @@ def run(args: DictConfig):
         train_loss, train_acc, val_loss, val_acc = [], [], [], []
         
         model.train()
+
+        scaler = torch.cuda.amp.GradScaler()
+
         for X, y, subject_idxs in tqdm(train_loader, desc="Train"):
             X, y = X.to(args.device), y.to(args.device)
 
-            y_pred = model(X)
-            
-            loss = F.cross_entropy(y_pred, y)
-            train_loss.append(loss.item())
-            
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            
+            with torch.cuda.amp.autocast():
+                y_pred = model(X)
+                loss = F.cross_entropy(y_pred, y)
+                train_loss.append(loss.item())
+            
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             
             acc = accuracy(y_pred, y)
             train_acc.append(acc.item())
