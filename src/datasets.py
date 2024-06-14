@@ -13,10 +13,13 @@ class ThingsMEGDataset(torch.utils.data.Dataset):
         self.split = split
         self.num_classes = 1854
         
+        # 脳波データ
         self.X = torch.load(os.path.join(data_dir, f"{split}_X.pt"))
+        # 被験者情報
         self.subject_idxs = torch.load(os.path.join(data_dir, f"{split}_subject_idxs.pt"))
         
         if split in ["train", "val"]:
+            # 画像のクラス
             self.y = torch.load(os.path.join(data_dir, f"{split}_y.pt"))
             assert len(torch.unique(self.y)) == self.num_classes, "Number of classes do not match."
 
