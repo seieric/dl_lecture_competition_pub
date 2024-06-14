@@ -26,11 +26,19 @@ def main():
     # 各値を-1から1に収める
     print("Scaling...")
     X = X / divisor.view(-1,1)
-    
+
+    # パワースペクトルを求める
+    X_reshaped = X.view(X.shape[0], -1)
+    print("Converting to power spectrum...")
+    fft_data = torch.fft.fft(X_reshaped)
+    power_spectrum = torch.abs(fft_data) ** 2
+    X = power_spectrum.view(X.shape)
+    print("Convertion finished.")
+
     print("Final shape:", X.shape)
     
     print("Writing data...")
-    torch.save(X.to('cpu'), os.path.join(data_dir, f"{split}_X_preprocessed.pt"))
+    torch.save(X.to('cpu'), os.path.join(data_dir, f"{split}_X_preprocessed2.pt"))
     print("Data written.")
     
     print("Erasing variables...")
