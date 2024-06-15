@@ -14,22 +14,21 @@ def main():
     print("Data loaded. Shape: ", X.shape)
 
     # チャンネルごとの最大値と最小値を求めるため、変形する
-    X_reshaped = torch.reshape(X, (X.shape[1], X.shape[0]*X.shape[2]))
-    maxs, _ = torch.max(X_reshaped, dim=-1)
-    mins, _ = torch.min(X_reshaped, dim=-1)
-    divisor = torch.maximum(torch.abs(maxs), torch.abs(mins))
+    X_reshaped = X.view(X.shape[1], X.shape[0]*X.shape[2])
+    divisor, _ = torch.max(X_reshaped, dim=-1)
     # 各値を-1から1に収める
     print("Scaling...")
-    X = X / divisor.view(-1,1)
+    X_processed = X_reshaped / divisor.view(-1,1)
+    X_processed = X_processed.view(X.shape)
 
-    print("Final shape:", X.shape)
+    print("Final shape:", X_processed.shape)
     
     print("Writing data...")
-    torch.save(X.to('cpu'), os.path.join(data_dir, f"{split}_X_preprocessed.pt"))
+    torch.save(X_processed.to('cpu'), os.path.join(data_dir, f"{split}_X_preprocessed.pt"))
     print("Data written.")
     
     print("Erasing variables...")
-    del X, X_reshaped, maxs, mins, divisor, _
+    del X, X_reshaped, X_processed, divisor, _
     torch.cuda.empty_cache()
 
 if __name__ == "__main__":
