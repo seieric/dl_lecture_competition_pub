@@ -49,7 +49,7 @@ def run(args: DictConfig):
     # ------------------
     # Optimizer & Scheduler
     # ------------------
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
     # ------------------
