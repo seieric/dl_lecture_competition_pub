@@ -7,15 +7,15 @@ def main():
   for split in ["train", "val", "test"]:
     # データをGPUに読み込む
     print(f"Loading {split} data...")
-    data_path = os.path.join(data_dir, f"{split}_X_fft.pt")
-    if not os.path.exists(os.path.join(data_dir, f"{split}_X_fft.pt")):
-      raise Exception("fft.pyを先に実行してください。")
+    data_path = os.path.join(data_dir, f"{split}_X.pt")
     X = torch.load(data_path).to(device)
     print("Data loaded. Shape: ", X.shape)
 
     # チャンネルごとの最大値と最小値を求めるため、変形する
     X_reshaped = X.view(X.shape[1], X.shape[0]*X.shape[2])
-    divisor, _ = torch.max(X_reshaped, dim=-1)
+    maxs, _ = torch.max(X_reshaped, dim=-1)
+    mins, _ = torch.min(X_reshaped, dim=-1)
+    divisor = torch.maximum(torch.abs(maxs), torch.abs(mins))
     # 各値を-1から1に収める
     print("Scaling...")
     X_processed = X_reshaped / divisor.view(-1,1)
