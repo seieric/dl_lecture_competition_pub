@@ -30,7 +30,20 @@ class ResNet34(nn.Module):
         X = self.conv1d(X)
         X = X.unsqueeze(2)
         return self.resnet34(X)
-    
+
+class ResNet50(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.conv1d = nn.Conv1d(271, 64, kernel_size=3, stride=1, padding=1)
+        self.resnet50 = models.resnet50()
+        self.resnet50.conv1 = nn.Conv2d(64, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        self.resnet50.fc = nn.Linear(self.resnet50.fc.in_features, 1854)
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        X = self.conv1d(X)
+        X = X.unsqueeze(2)
+        return self.resnet50(X)
+
 class ResNet152(nn.Module):
     def __init__(self) -> None:
         super().__init__()
