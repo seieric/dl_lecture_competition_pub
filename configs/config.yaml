@@ -1,11 +1,11 @@
-batch_size: 128
+batch_size: 256
 epochs: 80
 lr: 0.001
 
 device: cuda:0
 num_workers: 4
 seed: 1234
-use_wandb: False
+use_wandb: True
 
 data_dir: data
 
