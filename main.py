@@ -44,7 +44,7 @@ def run(args: DictConfig):
     #model = BasicConvClassifier(
     #    train_set.num_classes, train_set.seq_len, train_set.num_channels
     #).to(args.device)
-    model = ResNet50().to(args.device)
+    model = ResNet34(pretrained=True).to(args.device)
 
     # ------------------
     # Optimizer & Scheduler

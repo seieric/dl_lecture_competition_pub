@@ -6,10 +6,13 @@ import torchvision.models as models
 
 
 class ResNet34(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, pretrained=False) -> None:
         super().__init__()
         self.conv1d = nn.Conv1d(271, 64, kernel_size=3, stride=1, padding=1)
-        self.resnet34 = models.resnet34()
+        if pretrained:
+            self.resnet34 = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
+        else:
+            self.resnet34 = models.resnet34()
         self.resnet34.conv1 = nn.Conv2d(64, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         self.resnet34.fc = nn.Linear(self.resnet34.fc.in_features, 1854)
 
