@@ -6,20 +6,29 @@ import torchvision.models as models
 
 
 class ResNet34(nn.Module):
-    def __init__(self, pretrained=False) -> None:
+    def __init__(self, pretrained=False, num_freezed_params=0) -> None:
         super().__init__()
         self.conv1d = nn.Conv1d(271, 64, kernel_size=3, stride=1, padding=1)
         if pretrained:
             self.resnet34 = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
+            for i, param in enumerate(self.resnet34.parameters()):
+                if i >= num_freezed_params:
+                    param.requires_grad = True
         else:
             self.resnet34 = models.resnet34()
         self.resnet34.conv1 = nn.Conv2d(64, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        self.resnet34.fc = nn.Linear(self.resnet34.fc.in_features, 1854)
+        self.resnet34.fc = nn.Linear(self.resnet34.fc.in_features, 1024)
+        self.final = nn.Sequential(
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(1024, 1854)
+        )
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         X = self.conv1d(X)
         X = X.unsqueeze(2)
-        return self.resnet34(X)
+        X = self.resnet34(X)
+        return self.final(X)
 
 class ResNet50(nn.Module):
     def __init__(self) -> None:

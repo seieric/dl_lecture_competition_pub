@@ -46,7 +46,7 @@ def run(args: DictConfig):
     #model = BasicConvClassifier(
     #    train_set.num_classes, train_set.seq_len, train_set.num_channels
     #).to(device)
-    model = ResNet34(pretrained=True).to(device)
+    model = ResNet34(pretrained=args.pretrained, num_freezed_params=args.num_freezed_params).to(device)
     model = torch.nn.DataParallel(model, device_ids=list(range(args.num_gpus)))
 
     # ------------------
