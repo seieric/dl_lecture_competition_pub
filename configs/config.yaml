@@ -3,7 +3,7 @@ epochs: 80
 lr: 0.0005
 weight_decay: 0.0001
 
-device: cuda:0
+num_gpus: 2
 num_workers: 4
 seed: 1234
 use_wandb: True
