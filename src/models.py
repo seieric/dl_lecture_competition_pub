@@ -4,11 +4,13 @@ import torch.nn.functional as F
 from einops.layers.torch import Rearrange
 import torchvision.models as models
 import math
+import os
 
 
 class ResNet34(nn.Module):
     def __init__(self, pretrained=False, num_freezed_params=0) -> None:
         super().__init__()
+        self.spatial_attention = SpatialAttentionLayer(271)
         self.conv1d = nn.Conv1d(271, 271, kernel_size=1, stride=1, padding=1)
         self.dropout1 = nn.Dropout(0.5)
         self.subject_layer = SubjectLayer(4, 271)
@@ -24,6 +26,7 @@ class ResNet34(nn.Module):
 
     def forward(self, X_and_subject_idx: (torch.Tensor, torch.Tensor)) -> torch.Tensor:
         X, subject_idx = X_and_subject_idx
+        X = self.spatial_attention(X)
         X = self.conv1d(X)
         X = self.dropout1(X)
         X = self.subject_layer(X, subject_idx)
@@ -47,6 +50,66 @@ class SubjectLayer(nn.Module):
         # Ms_selected: (128, 271, 271)
         X = torch.matmul(Ms_selected, X)
         return X.squeeze(-1)
+
+class SpatialAttentionLayer(nn.Module):
+    def __init__(self, num_channels, layout=None):
+        super(SpatialAttentionLayer, self).__init__()
+        self.num_channels = num_channels
+        if not layout and os.path.exists(os.path.join("./data", "layout.pt")):
+            self.layout = torch.load(os.path.join("./data", "layout.pt")).to("cuda")
+        else:
+            raise Exception("preprocess/layout.pyを実行してlayout.ptを生成してください")
+        
+        self.K = 32
+        # (271, 32, 32)
+        self.weights_real = nn.Parameter(torch.randn(num_channels, self.K, self.K))
+        self.weights_imaginary = nn.Parameter(torch.randn(num_channels, self.K, self.K))
+        
+        self.epsilon = 1e-8
+        self.drop_distance = 0.2
+
+    def forward(self, X):
+        # X: (128, 271, 281)
+        # attention_weights: (128, 271, 281)
+        attention_weights = torch.zeros(X.size(0), self.num_channels, 281).to("cuda")
+        
+        for j in range(self.num_channels):
+            # (271)
+            a_j = torch.zeros(self.num_channels).to("cuda")
+            for k in range(self.K):
+                for l in range(self.K):
+                    # (271)
+                    theta = 2 * math.pi * (k * self.layout[:, 0] + l * self.layout[:, 1])
+                    # (271)
+                    a_j += self.weights_real[j, k, l] * torch.cos(theta) + self.weights_imaginary[j, k, l] * torch.sin(theta)
+            # jのattention_weightsを求める
+            # attetion_weights: (128, 271)
+            # output: (128, 281)
+            attention_weights[:, j, :] = sum_of_exps_times_tensor(a_j, X) / sum_of_exps(a_j)
+
+        # spatial dropout/空間的ドロップアウト
+        drop_position = torch.rand(X.size(0), 2).to("cuda")
+        distances = torch.sqrt(torch.sum((drop_position.unsqueeze(1) - self.layout.unsqueeze(0))**2, dim=2))
+        # drop_distanceの範囲にある入力を除去
+        mask = distances < self.drop_distance
+        attention_weights[:, :, mask] = 0
+
+        # Normalize attention weights
+        return attention_weights / (torch.sum(attention_weights, dim=2, keepdim=True) + self.epsilon)
+
+@torch.jit.script
+def sum_of_exps(tensor):
+    return torch.sum(torch.exp(tensor))
+
+@torch.jit.script
+def sum_of_exps_times_tensor(a, T):
+    # (271)
+    exps = torch.exp(a)
+    #  出力チャンネル271, 入力チャンネル271
+    # (271) * (128, 271, 281)
+    multiplied_tensor = exps * T.view(128, 281, 271)
+    result = torch.sum(multiplied_tensor, dim=2)
+    return result
 
 class ResNet50(nn.Module):
     def __init__(self) -> None:
