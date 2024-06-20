@@ -10,6 +10,7 @@ class ResNet34(nn.Module):
     def __init__(self, pretrained=False, num_freezed_params=0) -> None:
         super().__init__()
         self.conv1d = nn.Conv1d(271, 271, kernel_size=1, stride=1, padding=1)
+        self.dropout1 = nn.Dropout(0.5)
         self.subject_layer = SubjectLayer(4, 271)
         if pretrained:
             self.resnet34 = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
@@ -24,6 +25,7 @@ class ResNet34(nn.Module):
     def forward(self, X_and_subject_idx: (torch.Tensor, torch.Tensor)) -> torch.Tensor:
         X, subject_idx = X_and_subject_idx
         X = self.conv1d(X)
+        X = self.dropout1(X)
         X = self.subject_layer(X, subject_idx)
         X = X.unsqueeze(2)
         return self.resnet34(X)
