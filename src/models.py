@@ -19,20 +19,14 @@ class ResNet34(nn.Module):
         else:
             self.resnet34 = models.resnet34()
         self.resnet34.conv1 = nn.Conv2d(271, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        self.resnet34.fc = nn.Linear(self.resnet34.fc.in_features, 1024)
-        self.final = nn.Sequential(
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(1024, 1854)
-        )
+        self.resnet34.fc = nn.Linear(self.resnet34.fc.in_features, 1854)
 
     def forward(self, X_and_subject_idx: (torch.Tensor, torch.Tensor)) -> torch.Tensor:
         X, subject_idx = X_and_subject_idx
         X = self.conv1d(X)
         X = self.subject_layer(X, subject_idx)
         X = X.unsqueeze(2)
-        X = self.resnet34(X)
-        return self.final(X)
+        return self.resnet34(X)
     
 class SubjectLayer(nn.Module):
     def __init__(self, num_subjects, num_channels):
@@ -41,7 +35,7 @@ class SubjectLayer(nn.Module):
         self.num_channels = num_channels
 
         self.Ms = nn.Parameter(torch.Tensor(num_subjects, num_channels, num_channels))
-        nn.init.kaiming_uniform_(self.Ms, a=math.sqrt(5))
+        nn.init.uniform_(self.Ms, -math.sqrt(3), math.sqrt(3))
 
     def forward(self, X, subject_idx):        
         # subject_idx: (128)
