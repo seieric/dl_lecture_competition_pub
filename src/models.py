@@ -68,7 +68,6 @@ class SpatialAttentionLayer(nn.Module):
         self.weights_imaginary = nn.Parameter(torch.randn(num_channels, self.K**2).unsqueeze(2))
         
         self.epsilon = 1e-8
-        self.drop_distance = 0.2
 
         # shape: (32, 32)
         k_indices, l_indices = torch.meshgrid(torch.arange(self.K), torch.arange(self.K), indexing="ij")
