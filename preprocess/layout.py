@@ -40,7 +40,7 @@ def main():
     maxs = np.max(coordinates, axis=0)
     coordinates = (coordinates - mins) / (maxs - mins)   
 
-    coordinates = torch.from_numpy(coordinates)
+    coordinates = torch.from_numpy(coordinates).float()
     torch.save(coordinates, os.path.join("./data", "layout.pt"))    
 
 if __name__ == "__main__":
