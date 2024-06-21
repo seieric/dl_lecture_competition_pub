@@ -83,15 +83,12 @@ class SpatialAttentionLayer(nn.Module):
         self.sin_theta = torch.sin(theta).unsqueeze(0).permute(0, 2, 1)
 
     def forward(self, X):
-        # shape: (271, 32*32, 1)
-        weights_real = self.weights_real.to(X.device)
-        weights_imaginary = self.weights_imaginary.to(X.device)
         # shape: (1, 32*32, 271)
         cos_theta = self.cos_theta.to(X.device)
         sin_theta = self.sin_theta.to(X.device)
         # shape: (271, 32*32, 271) - sum -> (271, 271)
-        a = torch.sum(weights_real * cos_theta
-                         + weights_imaginary * sin_theta, dim=1)
+        a = torch.sum(self.weights_real * cos_theta
+                         + self.weights_imaginary * sin_theta, dim=1)
         attention_weights = sum_of_exps_times_tensor(a, X) / sum_of_exps(a)
 
         # Normalize attention weights
