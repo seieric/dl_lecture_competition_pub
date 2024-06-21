@@ -24,8 +24,7 @@ class ResNet34(nn.Module):
         self.resnet34.conv1 = nn.Conv2d(271, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         self.resnet34.fc = nn.Linear(self.resnet34.fc.in_features, 1854)
 
-    def forward(self, X_and_subject_idx: (torch.Tensor, torch.Tensor)) -> torch.Tensor:
-        X, subject_idx = X_and_subject_idx
+    def forward(self, X: torch.Tensor, subject_idx: torch.Tensor) -> torch.Tensor:
         X = self.spatial_attention(X)
         X = self.conv1d(X)
         X = self.dropout1(X)
