@@ -64,8 +64,10 @@ class SpatialAttentionLayer(nn.Module):
         # shape: (271, 32*32, 2)
         self.layout = layout.unsqueeze(1).expand(-1, self.K**2, -1)
         # (271, 32*32, 1)
-        self.weights_real = nn.Parameter(torch.randn(num_channels, self.K**2).unsqueeze(2))
-        self.weights_imaginary = nn.Parameter(torch.randn(num_channels, self.K**2).unsqueeze(2))
+        self.weights_real = nn.Parameter(torch.Tensor(num_channels, self.K**2, 1))
+        self.weights_imaginary = nn.Parameter(torch.Tensor(num_channels, self.K**2, 1))
+        nn.init.xavier_uniform_(self.weights_real)
+        nn.init.xavier_uniform_(self.weights_imaginary)
         
         self.epsilon = 1e-8
 
@@ -78,16 +80,13 @@ class SpatialAttentionLayer(nn.Module):
         # shape: (271, 32*32)
         theta = 2 * math.pi * (k_indices * self.layout[:,:, 0] + l_indices * self.layout[:,:, 1])
         # shape: (271, 32*32) -> (271, 32*32, 1) -> (1, 32*32, 271)
-        self.cos_theta = torch.cos(theta).unsqueeze(0).permute(0, 2, 1)
-        self.sin_theta = torch.sin(theta).unsqueeze(0).permute(0, 2, 1)
+        self.cos_theta = nn.Parameter(torch.cos(theta).unsqueeze(0).permute(0, 2, 1), requires_grad=False)
+        self.sin_theta = nn.Parameter(torch.sin(theta).unsqueeze(0).permute(0, 2, 1), requires_grad=False)
 
     def forward(self, X):
-        # shape: (1, 32*32, 271)
-        cos_theta = self.cos_theta.to(X.device)
-        sin_theta = self.sin_theta.to(X.device)
         # shape: (271, 32*32, 271) - sum -> (271, 271)
-        a = torch.sum(self.weights_real * cos_theta
-                         + self.weights_imaginary * sin_theta, dim=1)
+        a = torch.sum(self.weights_real * self.cos_theta
+                         + self.weights_imaginary * self.sin_theta, dim=1)
         attention_weights = sum_of_exps_times_tensor(a, X) / sum_of_exps(a)
 
         # Normalize attention weights
