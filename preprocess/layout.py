@@ -11,13 +11,11 @@ channels_to_skip = [
     "MLF25",
     "MRF43",
     "MRO13",
-    "MZP01",
-    "COMNT",
-    "SCALE"
+    "MRO11",
 ]
 
 def main():
-    response = requests.get("https://raw.githubusercontent.com/fieldtrip/fieldtrip/master/template/layout/CTF275.lay")
+    response = requests.get("https://raw.githubusercontent.com/mne-tools/mne-python/main/mne/channels/data/layouts/CTF275.lay")
 
     if response.status_code != 200:
         print("取得失敗", response.status_code)
