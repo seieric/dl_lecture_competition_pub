@@ -63,9 +63,9 @@ class SpatialAttentionLayer(nn.Module):
         self.K = 32
         # shape: (271, 32*32, 2)
         self.layout = layout.unsqueeze(1).expand(-1, self.K**2, -1)
-        # (271, 32, 32)
-        self.weights_real = nn.Parameter(torch.randn(num_channels, self.K, self.K))
-        self.weights_imaginary = nn.Parameter(torch.randn(num_channels, self.K, self.K))
+        # (271, 32*32, 1)
+        self.weights_real = nn.Parameter(torch.randn(num_channels, self.K**2).unsqueeze(2))
+        self.weights_imaginary = nn.Parameter(torch.randn(num_channels, self.K**2).unsqueeze(2))
         
         self.epsilon = 1e-8
         self.drop_distance = 0.2
@@ -78,17 +78,17 @@ class SpatialAttentionLayer(nn.Module):
 
         # shape: (271, 32*32)
         theta = 2 * math.pi * (k_indices * self.layout[:,:, 0] + l_indices * self.layout[:,:, 1])
-        # shape: (271, 32*32)
-        self.cos_theta = torch.cos(theta)
-        self.sin_theta = torch.sin(theta)
+        # shape: (271, 32*32) -> (271, 32*32, 1) -> (1, 32*32, 271)
+        self.cos_theta = torch.cos(theta).unsqueeze(0).permute(0, 2, 1)
+        self.sin_theta = torch.sin(theta).unsqueeze(0).permute(0, 2, 1)
 
     def forward(self, X):
         # shape: (271, 32*32, 1)
-        weights_real = self.weights_real.view(self.num_channels, -1).to(X.device).unsqueeze(2)
-        weights_imaginary = self.weights_imaginary.view(self.num_channels, -1).to(X.device).unsqueeze(2)
-        # shape: (271, 32*32, 1) -> (1, 32*32, 271)
-        cos_theta = self.cos_theta.to(X.device).unsqueeze(0).permute(0, 2, 1)
-        sin_theta = self.sin_theta.to(X.device).unsqueeze(0).permute(0, 2, 1)
+        weights_real = self.weights_real.to(X.device)
+        weights_imaginary = self.weights_imaginary.to(X.device)
+        # shape: (1, 32*32, 271)
+        cos_theta = self.cos_theta.to(X.device)
+        sin_theta = self.sin_theta.to(X.device)
         # shape: (271, 32*32, 271) - sum -> (271, 271)
         a = torch.sum(weights_real * cos_theta
                          + weights_imaginary * sin_theta, dim=1)
