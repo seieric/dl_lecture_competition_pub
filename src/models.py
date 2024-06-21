@@ -61,6 +61,7 @@ class SpatialAttentionLayer(nn.Module):
             raise Exception("preprocess/layout.pyを実行してlayout.ptを生成してください")
         
         self.K = 32
+        # shape: (271, 32*32, 2)
         self.layout = layout.unsqueeze(1).expand(-1, self.K**2, -1)
         # (271, 32, 32)
         self.weights_real = nn.Parameter(torch.randn(num_channels, self.K, self.K))
@@ -69,43 +70,48 @@ class SpatialAttentionLayer(nn.Module):
         self.epsilon = 1e-8
         self.drop_distance = 0.2
 
+        # shape: (32, 32)
         k_indices, l_indices = torch.meshgrid(torch.arange(self.K), torch.arange(self.K), indexing="ij")
+        # shape: (32*32)
         k_indices = k_indices.reshape(-1)
         l_indices = l_indices.reshape(-1)
 
+        # shape: (271, 32*32)
         theta = 2 * math.pi * (k_indices * self.layout[:,:, 0] + l_indices * self.layout[:,:, 1])
+        # shape: (271, 32*32)
         self.cos_theta = torch.cos(theta)
         self.sin_theta = torch.sin(theta)
 
     def forward(self, X):
-        # X: (batch_size, 271, 281)
-        # attention_weights: (batch_size, 271, 281)
-        attention_weights = torch.zeros(X.size(0), self.num_channels, 281).to(X.device)
-        
-        for j in range(self.num_channels):
-            # (271)
-            a_j = torch.sum(self.weights_real[j].view(-1).to(X.device) * self.cos_theta.to(X.device)
-                             + self.weights_imaginary[j].view(-1).to(X.device) * self.sin_theta.to(X.device), dim=1)
-            # jのattention_weightsを求める
-            # attetion_weights: (batch_size, 271)
-            # output: (batch_size, 281)
-            attention_weights[:, j, :] = sum_of_exps_times_tensor(a_j, X) / sum_of_exps(a_j)
+        # shape: (271, 32*32, 1)
+        weights_real = self.weights_real.view(self.num_channels, -1).to(X.device).unsqueeze(2)
+        weights_imaginary = self.weights_imaginary.view(self.num_channels, -1).to(X.device).unsqueeze(2)
+        # shape: (271, 32*32, 1) -> (1, 32*32, 271)
+        cos_theta = self.cos_theta.to(X.device).unsqueeze(0).permute(0, 2, 1)
+        sin_theta = self.sin_theta.to(X.device).unsqueeze(0).permute(0, 2, 1)
+        # shape: (271, 32*32, 271) - sum -> (271, 271)
+        a = torch.sum(weights_real * cos_theta
+                         + weights_imaginary * sin_theta, dim=1)
+        attention_weights = sum_of_exps_times_tensor(a, X) / sum_of_exps(a)
 
         # Normalize attention weights
         return attention_weights / (torch.sum(attention_weights, dim=2, keepdim=True) + self.epsilon)
 
 @torch.jit.script
-def sum_of_exps(tensor):
-    return torch.sum(torch.exp(tensor))
+def sum_of_exps(a: torch.Tensor) -> torch.Tensor:
+    # shape: (1, 271, 1)
+    return torch.sum(torch.exp(a), dim=1).view(1, 271, 1)
 
 @torch.jit.script
-def sum_of_exps_times_tensor(a, T):
-    # (271)
-    exps = torch.exp(a)
-    #  出力チャンネル271, 入力チャンネル271
-    # (271) * (batch_size, 271, 281)
-    multiplied_tensor = exps * T.permute(0, 2, 1)
-    return torch.sum(multiplied_tensor, dim=2)
+def sum_of_exps_times_tensor(a: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
+    # shape: (271, 271)
+    # j方向を列にするために入れ替える
+    exps = torch.exp(a).permute(1, 0)
+    # shape: (1, 271, 271, 1)
+    exps = exps.unsqueeze(0).unsqueeze(3)
+    # X shape: (batch_size, 271, 1, 281)
+    multiplied_tensor = exps * X.unsqueeze(2)
+    return torch.sum(multiplied_tensor, dim=1)
 
 class ResNet50(nn.Module):
     def __init__(self) -> None:
