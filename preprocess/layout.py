@@ -38,7 +38,9 @@ def main():
 
     mins = np.min(coordinates, axis=0)
     maxs = np.max(coordinates, axis=0)
-    coordinates = (coordinates - mins) / (maxs - mins)   
+    coordinates = (coordinates - mins) / (maxs - mins)
+    coordinates *= 0.8
+    coordinates += 0.1
 
     coordinates = torch.from_numpy(coordinates).float()
     torch.save(coordinates, os.path.join("./data", "layout.pt"))    
