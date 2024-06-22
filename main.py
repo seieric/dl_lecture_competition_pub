@@ -10,7 +10,7 @@ from termcolor import cprint
 from tqdm import tqdm
 
 from src.datasets import ThingsMEGDataset
-from src.models import BasicConvClassifier, ResNet34, ResNet50, ResNet152
+from src.models import BasicConvClassifier, MyModel, ResNet50, ResNet152
 from src.utils import set_seed
 
 
@@ -50,7 +50,7 @@ def run(args: DictConfig):
     # model = BasicConvClassifier(
     #    train_set.num_classes, train_set.seq_len, train_set.num_channels
     # ).to(device)
-    model = ResNet34(
+    model = MyModel(
         pretrained=args.pretrained, num_freezed_params=args.num_freezed_params
     ).to(device)
     model = torch.nn.DataParallel(model, device_ids=list(range(args.num_gpus)))
