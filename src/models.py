@@ -8,6 +8,7 @@ import os
 
 from .layers.subject import SubjectLayer
 from .layers.spatial_attention import SpatialAttentionLayer
+from .layers.resnet_gelu.resnet34 import ResNet34GELU
 
 
 class ResNet34(nn.Module):
@@ -17,13 +18,12 @@ class ResNet34(nn.Module):
         self.conv1d = nn.Conv1d(271, 271, kernel_size=1, stride=1, padding=1)
         self.dropout1 = nn.Dropout(0.5)
         self.subject_layer = SubjectLayer(4, 271)
-        self.classifier = BasicConvClassifier(1854, 281, 271)
+        self.classifier = ResNet34GELU(in_channels=271, num_classes=1854, dropout=0.3)
 
     def forward(self, X: torch.Tensor, subject_idx: torch.Tensor) -> torch.Tensor:
         X = self.conv1d(X)
-        # X = self.dropout1(X)
         X = self.subject_layer(X, subject_idx)
-        # X = X.unsqueeze(2)
+        X = X.unsqueeze(2)
         return self.classifier(X)
 
 
