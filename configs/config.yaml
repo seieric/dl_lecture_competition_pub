@@ -3,8 +3,7 @@ epochs: 80
 lr: 0.001
 weight_decay: 0.0001
 
-pretrained: True
-num_freezed_params: 80
+dropout: 0.3
 
 num_gpus: 2
 num_workers: 4
