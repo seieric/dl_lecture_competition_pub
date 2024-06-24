@@ -9,9 +9,9 @@ class MEGNet(nn.Module):
         seq_len=283,
         dropout=0.5,
         kernLength=64,
-        F1=8,
+        F1=256,
         D=2,
-        F2=16,
+        F2=512,
         dropoutFunc=nn.Dropout,
     ):
         super(MEGNet, self).__init__()
