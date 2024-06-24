@@ -35,19 +35,29 @@ class MEGNet(nn.Module):
         )
         # shape: (N, 16, 1, 67)
         self.block2 = nn.Sequential(
-            nn.Conv2d(F1 * D, F2, kernel_size=(1, 16), padding=(0, 8), bias=False),
-            # (16, 1, 60)
+            nn.Conv2d(F1 * D, F2, kernel_size=(1, 8), padding=(0, 8), bias=False),
+            # (N, 16, 1, 75)
             nn.BatchNorm2d(F2),
+            nn.ELU(),
+            nn.AvgPool2d((1, 4)),
+            dropoutFunc(dropout),
+        )
+        # shape: (N, 16, 1, 18)
+        self.block3 = nn.Sequential(
+            nn.Conv2d(F2, F2 * D, kernel_size=(1, 16), padding=(0, 8), bias=False),
+            # (N, 32, 1, 18)
+            nn.BatchNorm2d(F2 * D),
             nn.ELU(),
             nn.AvgPool2d((1, 8)),
             dropoutFunc(dropout),
         )
-        # shape: (N, 16, 1, 8)
+        # shape: (N, 32, 1, 2)
         self.flatten = nn.Flatten()
-        self.dense = nn.Linear(F2 * (seq_len // 32), num_classes, bias=False)
+        self.dense = nn.Linear(F2 * D * (seq_len // 128), num_classes, bias=False)
 
     def forward(self, X):
         X = self.block1(X)
         X = self.block2(X)
+        X = self.block3(X)
         X = self.flatten(X)
         return self.dense(X)
