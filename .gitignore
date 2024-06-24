@@ -5,6 +5,8 @@ outputs/
 eval_omnicampus.py
 .github/
 
+*.sif
+
 # -------------------
 #   Python template
 # -------------------
