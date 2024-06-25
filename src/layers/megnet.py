@@ -33,27 +33,29 @@ class MEGNet(nn.Module):
             nn.AvgPool2d((1, 4)),
             dropoutFunc(dropout),
         )
-        # shape: (N, 16, 1, 67)
+        # shape: (N, 512, 1, 67)
         self.block2 = nn.Sequential(
-            nn.Conv2d(F1 * D, F2, kernel_size=(1, 8), padding=(0, 8), bias=False),
+            nn.Conv2d(F1 * D, F2 * D, kernel_size=(1, 8), padding=(0, 8), bias=False),
             # (N, 16, 1, 75)
-            nn.BatchNorm2d(F2),
+            nn.BatchNorm2d(F2 * D),
             nn.ELU(),
             nn.AvgPool2d((1, 4)),
             dropoutFunc(dropout),
         )
-        # shape: (N, 16, 1, 18)
+        # shape: (N, 1024, 1, 18)
         self.block3 = nn.Sequential(
-            nn.Conv2d(F2, F2 * D, kernel_size=(1, 16), padding=(0, 8), bias=False),
-            # (N, 32, 1, 18)
-            nn.BatchNorm2d(F2 * D),
+            nn.Conv2d(
+                F2 * D, F2 * D * 2, kernel_size=(1, 16), padding=(0, 8), bias=False
+            ),
+            # (N, 32, 1, 30)
+            nn.BatchNorm2d(F2 * D * 2),
             nn.ELU(),
             nn.AvgPool2d((1, 8)),
             dropoutFunc(dropout),
         )
-        # shape: (N, 32, 1, 2)
+        # shape: (N, 2048, 1, 3)
         self.flatten = nn.Flatten()
-        self.dense = nn.Linear(F2 * D * (seq_len // 128), num_classes, bias=False)
+        self.dense = nn.Linear(F2 * D * 2 * (seq_len // 128), num_classes, bias=False)
 
     def forward(self, X):
         X = self.block1(X)
