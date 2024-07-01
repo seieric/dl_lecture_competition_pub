@@ -8,23 +8,27 @@ from termcolor import cprint
 class ThingsMEGDataset(torch.utils.data.Dataset):
     def __init__(self, split: str, data_dir: str = "data") -> None:
         super().__init__()
-        
+
         assert split in ["train", "val", "test"], f"Invalid split: {split}"
         self.split = split
         self.num_classes = 1854
-        
+
         # 脳波データ
         data_path = os.path.join(data_dir, f"{split}_X_preprocessed.pt")
         if not os.path.exists(data_path):
             raise Exception("下処理されたデータが存在しません．")
         self.X = torch.load(data_path)
         # 被験者情報
-        self.subject_idxs = torch.load(os.path.join(data_dir, f"{split}_subject_idxs.pt"))
-        
+        self.subject_idxs = torch.load(
+            os.path.join(data_dir, f"{split}_subject_idxs.pt")
+        )
+
         if split in ["train", "val"]:
             # 画像のクラス
             self.y = torch.load(os.path.join(data_dir, f"{split}_y.pt"))
-            assert len(torch.unique(self.y)) == self.num_classes, "Number of classes do not match."
+            assert (
+                len(torch.unique(self.y)) == self.num_classes
+            ), "Number of classes do not match."
 
     def __len__(self) -> int:
         return len(self.X)
@@ -34,11 +38,11 @@ class ThingsMEGDataset(torch.utils.data.Dataset):
             return self.X[i], self.y[i], self.subject_idxs[i]
         else:
             return self.X[i], self.subject_idxs[i]
-        
+
     @property
     def num_channels(self) -> int:
         return self.X.shape[1]
-    
+
     @property
     def seq_len(self) -> int:
         return self.X.shape[2]
