@@ -2,8 +2,8 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from image_encoder import ImageEncoder
-from meg_encoder import MEGEncoder
+from .image_encoder import ImageEncoder
+from .meg_encoder import MEGEncoder
 
 
 class MyCLIP(nn.Module):

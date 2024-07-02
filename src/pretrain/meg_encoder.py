@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from ..layers.subject_layer import SubjectLayer
+from ..layers.subject import SubjectLayer
 from ..layers.megnet import MEGNet
 
 
