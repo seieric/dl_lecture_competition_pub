@@ -100,7 +100,9 @@ def run(args: DictConfig):
         print(
             f"Epoch {epoch+1}/{args.epochs} | train loss: {np.mean(train_loss):.3f} | val loss: {np.mean(val_loss):.3f}"
         )
-        torch.save(myclip.state_dict(), os.path.join(logdir, "model_last.pt"))
+        torch.save(
+            myclip.meg_encoder.state_dict(), os.path.join(logdir, "model_last.pt")
+        )
         if args.use_wandb:
             wandb.log(
                 {
@@ -111,7 +113,9 @@ def run(args: DictConfig):
 
         if np.mean(val_loss) < min_val_loss:
             cprint("New best.", "cyan")
-            torch.save(myclip.state_dict(), os.path.join(logdir, "model_best.pt"))
+            torch.save(
+                myclip.meg_encoder.state_dict(), os.path.join(logdir, "model_best.pt")
+            )
             min_val_loss = np.mean(val_loss)
 
 
