@@ -25,12 +25,19 @@ class MyCLIP(nn.Module):
         X = self.meg_encoder(X, subject_idx)
         return X @ self.meg_projection
 
+    def _l2_normalize(self, X: torch.Tensor) -> torch.Tensor:
+        l2_norm = torch.norm(X**2, dim=0)
+        return X / l2_norm
+
     def forward(
         self, image: torch.Tensor, meg: torch.Tensor, subject_idx: torch.Tensor
     ) -> torch.Tensor:
-        image = self._encode_image(image)
-        meg = self._encode_meg(meg, subject_idx)
+        # 画像を512次元の特徴量で表現 (batch_size, 512)
+        image = self._l2_normalize(self._encode_image(image))
+        # MEGを512次元の特徴量で表現 (batch_size, 512)
+        meg = self._l2_normalize(self._encode_meg(meg, subject_idx))
 
+        # (batch_size, batch_size)
         logits_per_image = (image @ meg.T) * self.temperature.exp()
         logits_per_meg = (meg @ image.T) * self.temperature.exp()
 
