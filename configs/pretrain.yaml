@@ -4,9 +4,7 @@ lr: 0.001
 weight_decay: 0.0001
 
 meg_dropout: 0.5
-alpha: 0.00005
 
-num_gpus: 2
 num_workers: 4
 seed: 1234
 use_wandb: True

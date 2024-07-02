@@ -2,6 +2,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
+import torch.nn.functional as F
 from .image_encoder import ImageEncoder
 from .meg_encoder import MEGEncoder
 
@@ -29,7 +30,7 @@ class MyCLIP(nn.Module):
         l2_norm = torch.norm(X**2, dim=0)
         return X / l2_norm
 
-    def forward(
+    def loss(
         self, image: torch.Tensor, meg: torch.Tensor, subject_idx: torch.Tensor
     ) -> torch.Tensor:
         # 画像を512次元の特徴量で表現 (batch_size, 512)
@@ -38,7 +39,17 @@ class MyCLIP(nn.Module):
         meg = self._l2_normalize(self._encode_meg(meg, subject_idx))
 
         # (batch_size, batch_size)
-        logits_per_image = (image @ meg.T) * self.temperature.exp()
-        logits_per_meg = (meg @ image.T) * self.temperature.exp()
+        logits = (image @ meg.T) * self.temperature.exp()
 
-        return logits_per_image, logits_per_meg
+        image_similarity = image @ image.T
+        meg_similarity = meg @ meg.T
+        targets = F.softmax(
+            (image_similarity + meg_similarity) / 2 * self.temperature.exp(), dim=-1
+        )
+
+        image_loss = F.cross_entropy(logits, targets, reduction="none")
+        meg_loss = F.cross_entropy(logits.T, targets.T, reduction="none")
+
+        loss = (image_loss + meg_loss) / 2.0
+
+        return loss.mean()
