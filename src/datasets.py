@@ -1,17 +1,20 @@
 import os
 import numpy as np
 import torch
+import torchvision
 from typing import Tuple
 from termcolor import cprint
 
 
 class ThingsMEGDataset(torch.utils.data.Dataset):
-    def __init__(self, split: str, data_dir: str = "data") -> None:
+    def __init__(self, split: str, data_dir: str = "data", with_image=False) -> None:
         super().__init__()
 
         assert split in ["train", "val", "test"], f"Invalid split: {split}"
         self.split = split
         self.num_classes = 1854
+        self.data_dir = data_dir
+        self.with_image = with_image
 
         # 脳波データ
         data_path = os.path.join(data_dir, f"{split}_X_preprocessed.pt")
@@ -35,7 +38,15 @@ class ThingsMEGDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, i):
         if hasattr(self, "y"):
-            return self.X[i], self.y[i], self.subject_idxs[i]
+            if not self.with_image:
+                return self.X[i], self.y[i], self.subject_idxs[i]
+            image = torchvision.io.read_image(
+                os.path.join(
+                    self.data_dir, "preprocessed_images", self.split, f"{i}.png"
+                )
+            )
+            image = image.float() / 255.0
+            return self.X[i], self.y[i], self.subject_idxs[i], image
         else:
             return self.X[i], self.subject_idxs[i]
 
