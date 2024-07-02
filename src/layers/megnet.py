@@ -51,13 +51,14 @@ class MEGNet(nn.Module):
             dropoutFunc(dropout),
         )
         # shape: (N, 2048, 1, 2)
-        self.flatten = nn.Flatten()
-        self.dense = nn.Linear(2048 * 2, num_classes, bias=False)
+        self.dense = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(2048 * 2, num_classes, bias=False),
+        )
 
     def forward(self, X):
         X = self.block1(X)
         X = self.block2(X)
         X = self.block3(X)
         X = self.block4(X)
-        X = self.flatten(X)
         return self.dense(X)
