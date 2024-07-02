@@ -21,8 +21,8 @@ class MyCLIP(nn.Module):
         X = self.image_encoder(X)
         return X @ self.image_projection
 
-    def _encode_meg(self, X: torch.Tensor) -> torch.Tensor:
-        X = self.meg_encoder(X)
+    def _encode_meg(self, X: torch.Tensor, subject_idx: torch.Tensor) -> torch.Tensor:
+        X = self.meg_encoder(X, subject_idx)
         return X @ self.meg_projection
 
     def forward(
