@@ -41,14 +41,9 @@ class MyCLIP(nn.Module):
         # (batch_size, batch_size)
         logits = (image @ meg.T) * self.temperature.exp()
 
-        image_similarity = image @ image.T
-        meg_similarity = meg @ meg.T
-        targets = F.softmax(
-            (image_similarity + meg_similarity) / 2 * self.temperature.exp(), dim=-1
-        )
-
-        image_loss = F.cross_entropy(logits, targets, reduction="none")
-        meg_loss = F.cross_entropy(logits.T, targets.T, reduction="none")
+        labels = torch.arange(logits.shape[0]).to(image.device)
+        image_loss = F.cross_entropy(logits, labels, reduction="none")
+        meg_loss = F.cross_entropy(logits.T, labels, reduction="none")
 
         loss = (image_loss + meg_loss) / 2.0
 
