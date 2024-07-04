@@ -45,11 +45,12 @@ def run(args: DictConfig):
     #       CLIP
     # ------------------
     myclip = MyCLIP(meg_dropout=args.meg_dropout).to(device)
+    myclip = torch.nn.DataParallel(myclip, device_ids=list(range(args.num_gpus)))
 
     # ------------------
     # Optimizer & Scheduler
     # ------------------
-    optimizer = torch.optim.Adam(
+    optimizer = torch.optim.AdamW(
         myclip.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20)
@@ -57,7 +58,7 @@ def run(args: DictConfig):
     # ------------------
     #   Start training
     # ------------------
-    min_val_loss = 0
+    min_val_loss = np.inf
 
     torch.backends.cudnn.benchmark = True
 
@@ -77,7 +78,7 @@ def run(args: DictConfig):
 
             optimizer.zero_grad()
 
-            loss = myclip.loss(image, meg, subject_idxs)
+            loss = myclip.module.loss(image, meg, subject_idxs)
             train_loss.append(loss.item())
 
             loss.backward()
@@ -94,14 +95,15 @@ def run(args: DictConfig):
             )
 
             with torch.no_grad():
-                loss = myclip.loss(image, meg, subject_idxs)
+                loss = myclip.module.loss(image, meg, subject_idxs)
             val_loss.append(loss.item())
 
         print(
             f"Epoch {epoch+1}/{args.epochs} | train loss: {np.mean(train_loss):.3f} | val loss: {np.mean(val_loss):.3f}"
         )
         torch.save(
-            myclip.meg_encoder.state_dict(), os.path.join(logdir, "model_last.pt")
+            myclip.module.meg_encoder.state_dict(),
+            os.path.join(logdir, "model_last.pt"),
         )
         if args.use_wandb:
             wandb.log(
@@ -114,7 +116,8 @@ def run(args: DictConfig):
         if np.mean(val_loss) < min_val_loss:
             cprint("New best.", "cyan")
             torch.save(
-                myclip.meg_encoder.state_dict(), os.path.join(logdir, "model_best.pt")
+                myclip.module.meg_encoder.state_dict(),
+                os.path.join(logdir, "model_best.pt"),
             )
             min_val_loss = np.mean(val_loss)
 
