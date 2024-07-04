@@ -53,7 +53,7 @@ def run(args: DictConfig):
     optimizer = torch.optim.AdamW(
         myclip.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
 
     # ------------------
     #   Start training
