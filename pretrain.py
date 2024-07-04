@@ -69,7 +69,7 @@ def run(args: DictConfig):
 
         myclip.train()
 
-        for meg, y, subject_idxs, image in tqdm(train_loader, desc="Train"):
+        for meg, _, subject_idxs, image in tqdm(train_loader, desc="Train"):
             meg, subject_idxs, image = (
                 meg.to(device),
                 subject_idxs.to(device),
@@ -87,7 +87,7 @@ def run(args: DictConfig):
         scheduler.step()
 
         myclip.eval()
-        for meg, y, subject_idxs, image in tqdm(val_loader, desc="Validation"):
+        for meg, _, subject_idxs, image in tqdm(val_loader, desc="Validation"):
             meg, subject_idxs, image = (
                 meg.to(device),
                 subject_idxs.to(device),
