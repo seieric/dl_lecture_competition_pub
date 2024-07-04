@@ -52,6 +52,9 @@ def run(args: DictConfig):
     # ).to(device)
     model = MyModel(dropout=args.dropout).to(device)
     model = torch.nn.DataParallel(model, device_ids=list(range(args.num_gpus)))
+    model.module.encoder.load_state_dict(
+        torch.load(args.pretrained_model_path, map_location=device)
+    )
 
     # ------------------
     # Optimizer & Scheduler
