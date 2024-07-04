@@ -7,6 +7,8 @@ class ImageEncoder(nn.Module):
     def __init__(self) -> None:
         super(ImageEncoder, self).__init__()
         self.resnet = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
+        for param in self.resnet.parameters():
+            param.requires_grad = False
         # 最終層を削除して512次元の特徴量を出力するようにする
         self.resnet.fc = nn.Identity()
 
