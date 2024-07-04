@@ -55,6 +55,8 @@ def run(args: DictConfig):
     model.module.encoder.load_state_dict(
         torch.load(args.pretrained_model_path, map_location=device)
     )
+    for param in model.module.encoder.parameters():
+        param.requires_grad = False
 
     # ------------------
     # Optimizer & Scheduler
