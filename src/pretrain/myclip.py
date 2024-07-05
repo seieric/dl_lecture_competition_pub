@@ -11,7 +11,7 @@ class MyCLIP(nn.Module):
     def __init__(self, meg_dropout=0):
         super(MyCLIP, self).__init__()
         self.image_encoder = ImageEncoder()
-        self.image_projection = nn.Parameter(torch.randn(2048, 512))
+        self.image_projection = nn.Parameter(torch.randn(768, 512))
 
         self.meg_encoder = MEGEncoder(dropout=meg_dropout)
         self.meg_projection = nn.Parameter(torch.randn(4096, 512))
