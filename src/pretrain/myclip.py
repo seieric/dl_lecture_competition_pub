@@ -8,23 +8,21 @@ from .meg_encoder import MEGEncoder
 
 
 class MyCLIP(nn.Module):
-    def __init__(self, meg_dropout=0):
+    def __init__(self, pretrained_weights, meg_dropout=0):
         super(MyCLIP, self).__init__()
-        self.image_encoder = ImageEncoder()
-        self.image_projection = nn.Parameter(torch.randn(768, 512))
+        self.image_encoder = ImageEncoder(pretrained_weights)
 
         self.meg_encoder = MEGEncoder(dropout=meg_dropout)
-        self.meg_projection = nn.Parameter(torch.randn(4096, 512))
 
         self.temperature = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
 
     def _encode_image(self, X: torch.Tensor) -> torch.Tensor:
         X = self.image_encoder(X)
-        return X @ self.image_projection
+        return X
 
     def _encode_meg(self, X: torch.Tensor, subject_idx: torch.Tensor) -> torch.Tensor:
         X = self.meg_encoder(X, subject_idx)
-        return X @ self.meg_projection
+        return X
 
     def _l2_normalize(self, X: torch.Tensor) -> torch.Tensor:
         l2_norm = torch.norm(X**2, dim=0)

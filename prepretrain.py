@@ -2,6 +2,8 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torchvision.models as models
+from torchmetrics import Accuracy
 import hydra
 from omegaconf import DictConfig
 import wandb
@@ -9,17 +11,16 @@ from termcolor import cprint
 from tqdm import tqdm
 
 from src.datasets import ThingsMEGDataset
-from src.pretrain.myclip import MyCLIP
 from src.utils import set_seed
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="pretrain")
+@hydra.main(version_base=None, config_path="configs", config_name="prepretrain")
 def run(args: DictConfig):
     set_seed(args.seed)
     logdir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 
     if args.use_wandb:
-        wandb.init(mode="online", dir=logdir, project="MEG-pretraining")
+        wandb.init(mode="online", dir=logdir, project="MEG-prepretraining")
 
     device = torch.device("cuda")
 
@@ -42,85 +43,88 @@ def run(args: DictConfig):
     print("Datasets loaded.")
 
     # ------------------
-    #       CLIP
+    #       ResNet34
     # ------------------
-    pretrained_weights = torch.load(args.pretrained_weights)
-    myclip = MyCLIP(pretrained_weights, meg_dropout=args.meg_dropout).to(device)
-    myclip = torch.nn.DataParallel(myclip, device_ids=list(range(args.num_gpus)))
+    model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
+    for i, param in enumerate(model.parameters()):
+        if i < args.num_freeze_layers:
+            param.requires_grad = False
+    model.fc = torch.nn.Linear(model.fc.in_features, train_set.num_classes)
+    model = model.to(device)
+    model = torch.nn.DataParallel(model, device_ids=list(range(args.num_gpus)))
 
     # ------------------
     # Optimizer & Scheduler
     # ------------------
     optimizer = torch.optim.AdamW(
-        myclip.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        model.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
 
     # ------------------
     #   Start training
     # ------------------
-    min_val_loss = np.inf
+    max_val_acc = 0
+    accuracy = Accuracy(
+        task="multiclass", num_classes=train_set.num_classes, top_k=10
+    ).to(device)
 
     torch.backends.cudnn.benchmark = True
 
     for epoch in range(args.epochs):
         print(f"Epoch {epoch+1}/{args.epochs}")
 
-        train_loss, val_loss = [], []
+        train_loss, train_acc, val_loss, val_acc = [], [], [], []
 
-        myclip.train()
+        model.train()
 
-        for meg, _, subject_idxs, image in tqdm(train_loader, desc="Train"):
-            meg, subject_idxs, image = (
-                meg.to(device),
-                subject_idxs.to(device),
-                image.to(device),
-            )
+        for _, y, _, image in tqdm(train_loader, desc="Train"):
+            image, y = image.to(device), y.to(device)
 
             optimizer.zero_grad()
 
-            loss = myclip.module.loss(image, meg, subject_idxs)
+            y_pred = model(image)
+            loss = F.cross_entropy(y_pred, y)
             train_loss.append(loss.item())
 
             loss.backward()
             optimizer.step()
 
+            acc = accuracy(y_pred, y)
+            train_acc.append(acc.item())
         scheduler.step()
 
-        myclip.eval()
-        for meg, _, subject_idxs, image in tqdm(val_loader, desc="Validation"):
-            meg, subject_idxs, image = (
-                meg.to(device),
-                subject_idxs.to(device),
-                image.to(device),
-            )
+        model.eval()
+        for _, y, _, image in tqdm(val_loader, desc="Validation"):
+            image, y = image.to(device), y.to(device)
 
             with torch.no_grad():
-                loss = myclip.module.loss(image, meg, subject_idxs)
+                y_pred = model(image)
+
+            loss = F.cross_entropy(y_pred, y)
             val_loss.append(loss.item())
+            val_acc.append(accuracy(y_pred, y).item())
 
         print(
-            f"Epoch {epoch+1}/{args.epochs} | train loss: {np.mean(train_loss):.3f} | val loss: {np.mean(val_loss):.3f}"
+            f"Epoch {epoch+1}/{args.epochs} | train loss: {np.mean(train_loss):.3f} | train acc: {np.mean(train_acc):.3f} | val loss: {np.mean(val_loss):.3f} | val acc: {np.mean(val_acc):.3f}"
         )
-        torch.save(
-            myclip.module.meg_encoder.state_dict(),
-            os.path.join(logdir, "model_last.pt"),
-        )
+        torch.save(model.module.state_dict(), os.path.join(logdir, "resnet34_last.pt"))
         if args.use_wandb:
             wandb.log(
                 {
                     "train_loss": np.mean(train_loss),
+                    "train_acc": np.mean(train_acc),
                     "val_loss": np.mean(val_loss),
+                    "val_acc": np.mean(val_acc),
                 }
             )
 
-        if np.mean(val_loss) < min_val_loss:
+        if np.mean(val_acc) > max_val_acc:
             cprint("New best.", "cyan")
             torch.save(
-                myclip.module.meg_encoder.state_dict(),
-                os.path.join(logdir, "model_best.pt"),
+                model.module.state_dict(), os.path.join(logdir, "resnet34_best.pt")
             )
-            min_val_loss = np.mean(val_loss)
+            max_val_acc = np.mean(val_acc)
 
 
 if __name__ == "__main__":

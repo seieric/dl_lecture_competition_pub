@@ -1,0 +1,14 @@
+batch_size: 512
+epochs: 10
+lr: 0.0001
+weight_decay: 0.0001
+
+# ResNet34の最初の何層をfreezeするか
+num_freeze_layers: 30
+
+num_gpus: 4
+num_workers: 4
+seed: 1234
+use_wandb: True
+
+data_dir: data

@@ -4,13 +4,15 @@ import torchvision.models as models
 
 
 class ImageEncoder(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, pretrained_weights) -> None:
         super(ImageEncoder, self).__init__()
-        self.vit = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
-        for param in self.vit.parameters():
+        self.resnet = models.resnet34()
+        self.resnet.fc = nn.Linear(self.resnet.fc.in_features, 1854)
+        self.resnet.load_state_dict(pretrained_weights)
+        for param in self.resnet.parameters():
             param.requires_grad = False
-        # 最終層を削除して768次元の特徴量を出力するようにする
-        self.vit.heads = nn.Identity()
+        # 最終層を削除して512次元の特徴量を出力するようにする
+        self.resnet.fc = nn.Identity()
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return self.vit(X)
+        return self.resnet(X)
