@@ -92,10 +92,6 @@ def run(args: DictConfig):
 
             y_pred = model(X, subject_idxs)
             loss = F.cross_entropy(y_pred, y)
-            l2 = torch.tensor(0.0, requires_grad=True)
-            for w in model.parameters():
-                l2 = l2 + torch.norm(w) ** 2
-            loss = loss + args.alpha * l2
             train_loss.append(loss.item())
 
             loss.backward()
@@ -113,10 +109,6 @@ def run(args: DictConfig):
                 y_pred = model(X, subject_idxs)
 
             loss = F.cross_entropy(y_pred, y)
-            l2 = torch.tensor(0.0, requires_grad=True)
-            for w in model.parameters():
-                l2 = l2 + torch.norm(w) ** 2
-            loss = loss + args.alpha * l2
             val_loss.append(loss.item())
             val_acc.append(accuracy(y_pred, y).item())
 
