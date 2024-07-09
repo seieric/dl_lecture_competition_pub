@@ -1,9 +1,6 @@
 import os
-import numpy as np
 import torch
 import torchvision
-from typing import Tuple
-from termcolor import cprint
 
 
 class ThingsMEGDataset(torch.utils.data.Dataset):

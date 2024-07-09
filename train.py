@@ -1,4 +1,4 @@
-import os, sys
+import os
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -10,7 +10,7 @@ from termcolor import cprint
 from tqdm import tqdm
 
 from src.datasets import ThingsMEGDataset
-from src.models import BasicConvClassifier, MyModel, ResNet50, ResNet152
+from src.models import MyModel
 from src.utils import set_seed
 
 
@@ -56,7 +56,6 @@ def run(args: DictConfig):
         torch.load(args.pretrained_model_path, map_location=device)
     )
     for i, param in enumerate(model.module.encoder.parameters()):
-        print(i)
         if i < args.num_freeze_layers:
             param.requires_grad = False
 
