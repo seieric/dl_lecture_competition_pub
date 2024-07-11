@@ -10,7 +10,7 @@ from termcolor import cprint
 from tqdm import tqdm
 
 from src.datasets import ThingsMEGDataset
-from src.models import MyModel
+from src.mymodel import MyModel
 from src.utils import set_seed
 
 
