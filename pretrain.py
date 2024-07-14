@@ -72,9 +72,9 @@ def run(args: DictConfig):
 
         for meg, _, subject_idxs, image in tqdm(train_loader, desc="Train"):
             meg, subject_idxs, image = (
-                meg.to(device),
-                subject_idxs.to(device),
-                image.to(device),
+                meg.to(device, non_blocking=True),
+                subject_idxs.to(device, non_blocking=True),
+                image.to(device, non_blocking=True),
             )
 
             optimizer.zero_grad()
@@ -90,9 +90,9 @@ def run(args: DictConfig):
         myclip.eval()
         for meg, _, subject_idxs, image in tqdm(val_loader, desc="Validation"):
             meg, subject_idxs, image = (
-                meg.to(device),
-                subject_idxs.to(device),
-                image.to(device),
+                meg.to(device, non_blocking=True),
+                subject_idxs.to(device, non_blocking=True),
+                image.to(device, non_blocking=True),
             )
 
             with torch.no_grad():
