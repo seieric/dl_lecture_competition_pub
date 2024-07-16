@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .pretrain.meg_encoder import MEGEncoder
+from .meg_encoder import MEGEncoder
 
 
 class MyModel(nn.Module):
