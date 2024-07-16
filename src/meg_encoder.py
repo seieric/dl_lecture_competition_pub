@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from ..layers.subject import SubjectLayer
-from ..layers.megnet import MEGNet
+from .layers.subject import SubjectLayer
+from .layers.megnet import MEGNet
 
 
 class MEGEncoder(nn.Module):

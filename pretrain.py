@@ -9,7 +9,7 @@ from termcolor import cprint
 from tqdm import tqdm
 
 from src.datasets import ThingsMEGDataset
-from src.pretrain.myclip import MyCLIP
+from src.myclip import MyCLIP
 from src.utils import set_seed
 
 
